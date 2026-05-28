@@ -506,13 +506,13 @@
           <div class="mini">petite question</div>
           <h1>Ça te dirait<br>qu’on se voie ?</h1>
           <p class="subtitle">
-            Rien de trop sérieux, juste un petit date sympa, tranquille… .
+            Rien de trop sérieux, juste un petit date sympa, tranquille… avec l’approbation officielle du chat le plus mignon.
           </p>
 
           <!-- Mets ici ton image du Chat Potté / cute cat from Shrek. -->
           <img
             class="cat-photo"
-            src="https://i.pinimg.com/originals/79/78/09/797809f8c5512559892d95e459bd227c.gif"
+            src="./puss-in-boots.gif"
             alt="Chat mignon"
           >
 
@@ -566,13 +566,13 @@
           <!-- Mets ici ton GIF Shrek qui sourit. -->
           <img
             class="final-gif"
-            src="https://media1.tenor.com/m/b4YUypqoBmoAAAAC/shrek-gifgod.gif"
+            src="./shrek-smiling.gif"
             alt="Sourire content"
           >
 
           <h2>Je savais que tu dirais oui 😎</h2>
           <p class="subtitle">
-            Très bon choix.
+            Très bon choix. Même Shrek sourit comme si le plan avait toujours été évident.
           </p>
 
           <div class="card summary-card">
@@ -591,8 +591,8 @@
           </div>
 
           <div class="footer-actions">
-            <button class="wide-btn" id="sendBtn" type="button">Envoyer le choix 💌</button>
-            <div class="tiny-note" id="sendStatus">Tu peux fermer la page après l’envoi.</div>
+            <button class="wide-btn" id="sendBtn" type="button" hidden>Réessayer l’envoi 💌</button>
+            <div class="tiny-note" id="sendStatus">Le choix s’envoie automatiquement.</div>
           </div>
         </div>
       </section>
@@ -652,7 +652,9 @@
       selectedActivity: null,
       selectedDate: null,
       noCount: 0,
-      lastNoMove: 0
+      lastNoMove: 0,
+      isSending: false,
+      choiceSent: false
     };
 
     const screens = {
@@ -709,9 +711,6 @@
         });
       });
     }
-
-
-
 
     function toISODate(date) {
       const y = date.getFullYear();
@@ -890,6 +889,9 @@
     }
 
     async function sendChoice() {
+      if (state.isSending || state.choiceSent) return;
+      state.isSending = true;
+
       const endpoint = CONFIG.formEndpoint.trim();
 
       const payload = {
@@ -903,13 +905,16 @@
       };
 
       if (!endpoint || endpoint === "PASTE_YOUR_FORMSPREE_ENDPOINT_HERE") {
+        state.isSending = false;
+        sendBtn.hidden = false;
         sendStatus.textContent = "Ajoute ton endpoint Formspree pour recevoir les choix.";
         return;
       }
 
+      sendBtn.hidden = true;
       sendBtn.disabled = true;
       sendBtn.textContent = "Envoi...";
-      sendStatus.textContent = "Petit instant...";
+      sendStatus.textContent = "Envoi automatique du choix...";
 
       try {
         const res = await fetch(endpoint, {
@@ -923,12 +928,16 @@
 
         if (!res.ok) throw new Error("Erreur envoi");
 
+        state.choiceSent = true;
+        sendBtn.hidden = true;
         sendBtn.textContent = "Envoyé 💌";
-        sendStatus.textContent = "Parfait, le choix a été envoyé.";
+        sendStatus.textContent = "Parfait, le choix a été envoyé automatiquement.";
       } catch (e) {
+        state.isSending = false;
+        sendBtn.hidden = false;
         sendBtn.disabled = false;
-        sendBtn.textContent = "Réessayer";
-        sendStatus.textContent = "Erreur d’envoi. Vérifie l’endpoint Formspree.";
+        sendBtn.textContent = "Réessayer l’envoi 💌";
+        sendStatus.textContent = "Erreur d’envoi. Clique pour réessayer ou vérifie l’endpoint Formspree.";
       }
     }
 
@@ -949,6 +958,11 @@
       updateSummary();
       celebrate();
       goTo("final");
+
+      // Envoi automatique quand elle arrive à la page finale.
+      setTimeout(() => {
+        sendChoice();
+      }, 500);
     });
 
     sendBtn.addEventListener("click", sendChoice);
